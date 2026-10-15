@@ -3,7 +3,7 @@ using UnityEngine;
 public class Shell : MonoBehaviour
 {
     Transform shellEjectPoint;
-    public float lifeTime = 4f;
+    public float lifeTime = 20f;
     public float ejectionForceMultiplier = -5f; // Strength of the impulse
 
     private void Start()

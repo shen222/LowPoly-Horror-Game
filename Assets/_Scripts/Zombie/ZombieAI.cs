@@ -33,12 +33,40 @@ public class ZombieAI : MonoBehaviour
     [Header("AI Memory")]
     Vector3? lastKnownPosition = null;
 
+    [Header("Sounds")]
+    public AudioSource audioSource;
+    public AudioClip[] footstepClips;
+    [Min(0.01f)] public float soundMinDistance = 1.5f;
+    [Min(0.02f)] public float soundMaxDistance = 18f;
+
+    // Apply at runtime so existing scene overrides and spawned enemies get the fix.
+    protected void ConfigureEnemyAudio()
+    {
+        if (audioSource == null) audioSource = GetComponentInChildren<AudioSource>(true);
+        foreach (var source in GetComponentsInChildren<AudioSource>(true))
+            ConfigureAudioSource(source);
+        if (audioSource != null && audioSource.transform.IsChildOf(transform))
+            ConfigureAudioSource(audioSource);
+    }
+
+    private void ConfigureAudioSource(AudioSource source)
+    {
+        source.spatialBlend = 1f;
+        source.rolloffMode = AudioRolloffMode.Linear;
+        source.minDistance = Mathf.Max(0.01f, soundMinDistance);
+        source.maxDistance = Mathf.Max(source.minDistance + 0.01f, soundMaxDistance);
+        source.dopplerLevel = 0f;
+        source.spread = 0f;
+    }
+
+
     bool isDead = false;
     bool canAttack = true;
     bool pursue = false; 
 
-    void Awake()
+    protected virtual void Awake()
     {
+        ConfigureEnemyAudio();
         agent = GetComponent<NavMeshAgent>();
         currentHealth = maxHealth;
 
@@ -46,7 +74,7 @@ public class ZombieAI : MonoBehaviour
         collider.isTrigger = true; 
     }
 
-    void Update()
+    protected virtual void Update()
     {
         if (isDead) return;
 
@@ -142,7 +170,7 @@ public class ZombieAI : MonoBehaviour
         canAttack = true;
     }
 
-    public void TakeDamage(int amount)
+    public virtual void TakeDamage(int amount)
     {
         if (isDead) return;
 
@@ -157,6 +185,14 @@ public class ZombieAI : MonoBehaviour
             agent.isStopped = true; 
             StartCoroutine(RecoverFromStun());
         }
+    }
+
+    public void PlayFootstep()
+    {
+        if (audioSource == null || footstepClips == null || footstepClips.Length == 0) return;
+
+        AudioClip clip = footstepClips[Random.Range(0, footstepClips.Length)];
+        audioSource.PlayOneShot(clip);
     }
 
     IEnumerator RecoverFromStun()
